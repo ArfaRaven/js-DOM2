@@ -1,27 +1,6 @@
-let images = [];
 let current = 0;
-let page = 1;
 
-async function loadMore() {
-  setStatus('Завантаження...', true);
-  try {
-    const res = await fetch(`https://picsum.photos/v2/list?page=${page}&limit=4`);
-    const data = await res.json();
-    const newImgs = data.map(item => ({
-      id: item.id,
-      author: item.author,
-      url: item.download_url
-    }));
-    images = [...images, ...newImgs];
-    page++;
-    render();
-    setStatus(`Зображень у галереї: ${images.length}`);
-  } catch (e) {
-    setStatus('Помилка завантаження');
-  }
-}
-
-function render() {
+export function render(images) {
   const track = document.getElementById('sliderTrack');
   const empty = document.getElementById('emptyState');
   const dots = document.getElementById('dots');
@@ -48,14 +27,18 @@ function render() {
   track.style.transform = `translateX(-${current * 100}%)`;
 
   dots.innerHTML = images.map((_, i) =>
-    `<div class="dot ${i === current ? 'active' : ''}" onclick="goTo(${i})"></div>`
+    `<div class="dot ${i === current ? 'active' : ''}" data-index="${i}"></div>`
   ).join('');
+
+  document.querySelectorAll('.dot').forEach(dot => {
+    dot.addEventListener('click', () => goTo(parseInt(dot.dataset.index), images));
+  });
 
   document.getElementById('prevBtn').disabled = current === 0;
   document.getElementById('nextBtn').disabled = current === images.length - 1;
 }
 
-function slide(dir) {
+export function slide(dir, images) {
   current = Math.max(0, Math.min(images.length - 1, current + dir));
   document.getElementById('sliderTrack').style.transform = `translateX(-${current * 100}%)`;
   updateDots();
@@ -63,7 +46,7 @@ function slide(dir) {
   document.getElementById('nextBtn').disabled = current === images.length - 1;
 }
 
-function goTo(i) {
+export function goTo(i, images) {
   current = i;
   document.getElementById('sliderTrack').style.transform = `translateX(-${current * 100}%)`;
   updateDots();
@@ -75,35 +58,12 @@ function updateDots() {
   document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
 }
 
-function clearGallery() {
-  images = [];
-  page = 1;
+export function resetCurrent() {
   current = 0;
-  render();
-  setStatus('Галерею очищено');
 }
 
-function removeLast() {
-  if (images.length === 0) return;
-  images.pop();
-  if (current >= images.length && current > 0) current = images.length - 1;
-  render();
-  setStatus(`Зображень у галереї: ${images.length}`);
-}
-
-function flipGallery() {
-  if (images.length === 0) return;
-  images.reverse();
-  current = 0;
-  render();
-  setStatus('Галерею перевернуто');
-}
-
-function setStatus(msg, loading = false) {
+export function setStatus(msg, loading = false) {
   const el = document.getElementById('status');
   el.textContent = msg;
   el.className = loading ? 'loading' : '';
 }
-
-// Init
-loadMore();
